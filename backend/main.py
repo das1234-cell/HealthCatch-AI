@@ -5,9 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# 🔥 override=True দিলে সে জোর করে নতুন চাবিটাই নেবে!
-load_dotenv(override=True)
-api_key = os.getenv("GEMINI_API_KEY")
+# .env ফাইল থেকে Groq-এর চাবি লোড করা
+load_dotenv()
+
+# 🔴 গিটহাব পুশ প্রোটেকশন থেকে বাঁচতে সরাসরি চাবি না লিখে .env থেকে নেওয়া হলো
+api_key = os.getenv("GROQ_API_KEY")
 
 app = FastAPI()
 
@@ -24,35 +26,38 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 def chat_with_agent(request: ChatRequest):
-    # নতুন চাবিটা কাজ করছে কি না, সেটা টার্মিনালে দেখাবে
-    print(f"\n🔑 Using API Key starting with: {api_key[:5]}...")
+    print(f"\n🔑 Using Groq API Key...")
     
-    system_prompt = f"You are a highly empathetic, supportive, and compassionate AI mental health counselor for an app named 'HealthCatch AI'. Keep your answers brief, safe, and helpful. User says: {request.message}"
+    system_prompt = "You are a highly empathetic, supportive, and compassionate AI mental health counselor for an app named 'HealthCatch AI'. Keep your answers brief, safe, and helpful."
     
-    # গুগলের সবচেয়ে হালকা এবং ফ্রি মডেলগুলো আগে ট্রাই করব
-    models_to_try = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash-8b', 'gemini-2.5-pro']
-    
-    for model_name in models_to_try:
-        try:
-            print(f"⏳ Testing model: {model_name}...")
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    try:
+        # গুগলের বদলে আমরা Groq এর সার্ভারে ডাইরেক্ট রিকোয়েস্ট পাঠাচ্ছি
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # নতুন মডেল ব্যবহার করা হচ্ছে
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": request.message}
+            ]
+        }
+        
+        response = requests.post(url, headers=headers, json=payload)
+        data = response.json()
+        
+        if 'choices' in data:
+            reply = data['choices'][0]['message']['content']
+            print("✅ Success with Groq!")
+            return {"reply": reply}
+        else:
+            print("❌ Groq Error:", data)
+            return {"reply": "Sorry, I am facing a temporary issue with my new brain."}
             
-            payload = {
-                "contents": [{"parts": [{"text": system_prompt}]}]
-            }
-            
-            response = requests.post(url, json=payload)
-            data = response.json()
-            
-            if 'candidates' in data:
-                reply = data['candidates'][0]['content']['parts'][0]['text']
-                print(f"✅ Success with {model_name}!")
-                return {"reply": reply}
-            else:
-                error_msg = data.get('error', {}).get('message', 'Unknown')
-                print(f"❌ {model_name} failed. Reason: {error_msg}")
-        except Exception as e:
-            print(f"❌ {model_name} error: {str(e)}")
-            continue
-            
-    return {"reply": "Sorry, Google API blocked all requests. Please check terminal."}
+    except Exception as e:
+        print("❌ Request failed:", str(e))
+        return {"reply": "Sorry, I am facing a technical issue connecting to my network."}
