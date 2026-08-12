@@ -1,3 +1,4 @@
+import Spline from '@splinetool/react-spline';
 import React, { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
@@ -5,6 +6,21 @@ import {
   BrainCircuit, Send, User, Bot, Loader2, 
   Book, History, BarChart2, BookOpen, Settings, LogOut, Search, Sun, Bell, Paperclip, Mail, Lock
 } from 'lucide-react';
+
+// ইমপোর্টগুলোর একদম নিচে এই স্টাইল ব্লকটি বসাও
+const BackgroundStyles = () => (
+  <style>{`
+    @keyframes blob {
+      0% { transform: translate(0px, 0px) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob { animation: blob 7s infinite; }
+    .animation-delay-2000 { animation-delay: 2s; }
+    .animation-delay-4000 { animation-delay: 4s; }
+  `}</style>
+);
 
 const moodData = [
   { day: 'Mon', score: 4 }, { day: 'Tue', score: 6 }, { day: 'Wed', score: 5 },
@@ -44,16 +60,23 @@ function App() {
     const newMessages = [...messages, userMessage];
     
     setMessages(newMessages);
-    setInput('');
-    setSelectedFile(null); // মেসেজ পাঠানোর পর ফাইল ক্লিয়ার
     setIsLoading(true);
 
+    // ফাইল এবং মেসেজ একসাথে পাঠানোর জন্য FormData তৈরি
+    const formData = new FormData();
+    formData.append("message", input);
+    if (selectedFile) {
+      formData.append("file", selectedFile);
+    }
+
+    setInput('');
+    setSelectedFile(null); // মেসেজ পাঠানোর পর ফাইল ক্লিয়ার
+
     try {
-      // (পরবর্তীতে এখানে ফাইল সমেত ব্যাকএন্ডে পাঠানোর কোড হবে)
       const response = await fetch('http://127.0.0.1:8000/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage.text }), 
+        // FormData পাঠালে Content-Type নিজে থেকেই সেট হয়ে যায়, তাই এখানে সেটা লেখা লাগবে না
+        body: formData, 
       });
 
       const data = await response.json();
@@ -71,79 +94,57 @@ function App() {
       setSelectedFile(e.target.files[0]);
     }
   };
-
-  // --------------------------------------------------------
-  // 🔴 লগইন পেজ (যদি ইউজার লগইন না করে থাকে)
+// --------------------------------------------------------
+  // 🔴 লগইন পেজ (True Interactive 3D Background)
   // --------------------------------------------------------
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0F172A] relative overflow-hidden font-sans">
-        {/* সুন্দর ব্যাকগ্রাউন্ড গ্লো ইফেক্ট */}
-        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-40"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20"></div>
         
-        <div className="w-full max-w-md bg-[#1E293B]/80 backdrop-blur-xl p-8 rounded-3xl border border-slate-700 shadow-2xl z-10">
+        {/* 🔴 আসল 3D ইন্টারেক্টিভ ব্যাকগ্রাউন্ড (মাউস নাড়ালে নড়বে) */}
+        {/* আপাতত এখানে একটি অ্যাবস্ট্রাক্ট টেকনোলজি 3D শেপ দেওয়া হলো, যেটা মাউস ট্র্যাক করে */}
+        <div className="absolute inset-0 z-0">
+          <Spline scene="https://prod.spline.design/a3DWoWJ74evdsc1n/scene.splinecode" />
+        </div>
+
+        {/* 🔴 ওভারলে (যাতে 3D মডেলের কারণে লগইন বক্স ঢাকা না পড়ে) */}
+        <div className="absolute inset-0 bg-[#0F172A]/40 z-0 pointer-events-none"></div>
+
+        {/* 🔴 3D গ্লাসমরফিজম লগইন বক্স */}
+        <div className="w-full max-w-md bg-[#1E293B]/70 backdrop-blur-2xl p-8 rounded-3xl border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.7)] z-10 relative">
           <div className="flex justify-center mb-6">
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-              <BrainCircuit size={40} className="text-blue-500" /> HealthCatch
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3 drop-shadow-md">
+              <BrainCircuit size={40} className="text-blue-400" /> HealthCatch
             </h1>
           </div>
           
-          <h2 className="text-2xl font-bold text-white text-center mb-2">
-            {isLoginMode ? 'Welcome Back' : 'Create an Account'}
-          </h2>
-          <p className="text-slate-400 text-center mb-8">
-            {isLoginMode ? 'Sign in to access your mental wellness companion.' : 'Join us to start your wellness journey.'}
+          <h2 className="text-2xl font-bold text-white text-center mb-2">Welcome Back</h2>
+          <p className="text-slate-300 text-center mb-8">
+            Sign in to access your AI mental wellness companion.
           </p>
 
           <div className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-              <input type="email" placeholder="Email Address" className="w-full bg-[#0F172A] border border-slate-600 text-white rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-blue-500 transition-colors" />
+            <div className="relative group">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-400 transition-colors" size={20} />
+              <input type="email" placeholder="Email Address" className="w-full bg-[#0F172A]/80 border border-slate-500/50 text-white rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-blue-400 transition-all shadow-inner" />
             </div>
             
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-              <input type="password" placeholder="Password" className="w-full bg-[#0F172A] border border-slate-600 text-white rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-blue-500 transition-colors" />
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-400 transition-colors" size={20} />
+              <input type="password" placeholder="Password" className="w-full bg-[#0F172A]/80 border border-slate-500/50 text-white rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-blue-400 transition-all shadow-inner" />
             </div>
 
-            {isLoginMode && (
-              <div className="flex justify-end">
-                <button className="text-sm text-blue-400 hover:text-blue-300">Forgot Password?</button>
-              </div>
-            )}
-
-            {/* আপাতত ডেমো লগইন করার জন্য এই বাটনে ক্লিক করলেই অ্যাপে ঢুকে যাবে */}
             <button 
               onClick={() => setIsLoggedIn(true)} 
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-blue-500/30"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg hover:-translate-y-1"
             >
-              {isLoginMode ? 'Sign In' : 'Sign Up'}
-            </button>
-
-            <div className="relative flex items-center py-2">
-              <div className="flex-grow border-t border-slate-700"></div>
-              <span className="flex-shrink-0 mx-4 text-slate-500 text-sm">or</span>
-              <div className="flex-grow border-t border-slate-700"></div>
-            </div>
-
-            <button className="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-3">
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-              Continue with Google
+              Sign In
             </button>
           </div>
-
-          <p className="text-center text-slate-400 mt-6 text-sm">
-            {isLoginMode ? "Don't have an account? " : "Already have an account? "}
-            <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-blue-400 hover:text-blue-300 font-medium">
-              {isLoginMode ? 'Sign Up' : 'Log In'}
-            </button>
-          </p>
         </div>
       </div>
     );
   }
-
   // --------------------------------------------------------
   // 🔴 মেইন অ্যাপ (লগইন করার পর)
   // --------------------------------------------------------

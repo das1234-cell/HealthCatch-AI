@@ -1,15 +1,19 @@
 import os
-import requests
-from fastapi import FastAPI
+import io
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from dotenv import load_dotenv
+import google.generativeai as genai
+from PIL import Image
 
-# .env ফাইল থেকে Groq-এর চাবি লোড করা
-load_dotenv()
+load_dotenv(override=True)
 
-# 🔴 গিটহাব পুশ প্রোটেকশন থেকে বাঁচতে সরাসরি চাবি না লিখে .env থেকে নেওয়া হলো
-api_key = os.getenv("GROQ_API_KEY")
+# 🔴 এখানে তোমার একদম নতুন তৈরি করা চাবিটা বসাবে
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    GEMINI_API_KEY = "তোমার_নতুন_চাবি_এখানে_বসাও"
+
+genai.configure(api_key=GEMINI_API_KEY)
 
 app = FastAPI()
 
@@ -21,43 +25,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class ChatRequest(BaseModel):
-    message: str
-
 @app.post("/chat")
-def chat_with_agent(request: ChatRequest):
-    print(f"\n🔑 Using Groq API Key...")
-    
-    system_prompt = "You are a highly empathetic, supportive, and compassionate AI mental health counselor for an app named 'HealthCatch AI'. Keep your answers brief, safe, and helpful."
-    
+async def chat_with_agent(message: str = Form(""), file: UploadFile = File(None)):
     try:
-        # গুগলের বদলে আমরা Groq এর সার্ভারে ডাইরেক্ট রিকোয়েস্ট পাঠাচ্ছি
-        url = "https://api.groq.com/openai/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         
-        # নতুন মডেল ব্যবহার করা হচ্ছে
-        payload = {
-            "model": "llama-3.3-70b-versatile",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": request.message}
-            ]
-        }
+        # 🔴 এবার আমরা প্রো (Pro) মডেলে যাব না। শুধু ফ্রি ফ্ল্যাশ (Flash) মডেল খুঁজব।
+        target_model = None
+        for m in available_models:
+            if 'flash' in m: # যেকোনো flash মডেল (যেমন 1.5-flash বা 3.0-flash)
+                target_model = m
+                break
+                
+        if not target_model:
+            target_model = available_models[0] # ফ্ল্যাশ না পেলে বাধ্য হয়ে অন্যটা নেবে
+            
+        print(f"🎯 Using completely FREE Model: {target_model}")
         
-        response = requests.post(url, headers=headers, json=payload)
-        data = response.json()
+        model = genai.GenerativeModel(target_model)
         
-        if 'choices' in data:
-            reply = data['choices'][0]['message']['content']
-            print("✅ Success with Groq!")
-            return {"reply": reply}
+        system_prompt = "You are a highly empathetic AI mental health counselor for 'HealthCatch AI'. Keep answers brief and helpful. If the user uploads a prescription or medical image, gently remind them that you are an AI and they should consult a real doctor, but explain the contents in simple terms."
+        
+        contents = [system_prompt]
+        if message:
+            contents.append(message)
         else:
-            print("❌ Groq Error:", data)
-            return {"reply": "Sorry, I am facing a temporary issue with my new brain."}
+            contents.append("Please analyze this attached file.")
+            
+        if file and file.filename:
+            image_data = await file.read()
+            image = Image.open(io.BytesIO(image_data))
+            contents.append(image)
+            
+        response = model.generate_content(contents)
+        return {"reply": response.text}
             
     except Exception as e:
-        print("❌ Request failed:", str(e))
-        return {"reply": "Sorry, I am facing a technical issue connecting to my network."}
+        print("❌ Error:", str(e))
