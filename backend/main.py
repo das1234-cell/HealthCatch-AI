@@ -1,20 +1,16 @@
 import os
-import io
+import base64
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-import google.generativeai as genai
-from PIL import Image
+import requests
 
 load_dotenv(override=True)
 
-# 🔴 এখানে তোমার একদম নতুন তৈরি করা চাবিটা বসাবে
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    GEMINI_API_KEY = "তোমার_নতুন_চাবি_এখানে_বসাও"
-
-genai.configure(api_key=GEMINI_API_KEY)
-
+# 🔴 এখানে তোমার OpenRouter থেকে কপি করা নতুন চাবিটা বসাও
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+if not OPENROUTER_API_KEY:
+    OPENROUTER_API_KEY = "" # এখানে চাবি ফাঁকা রাখো
 app = FastAPI()
 
 app.add_middleware(
@@ -27,38 +23,59 @@ app.add_middleware(
 
 @app.post("/chat")
 async def chat_with_agent(message: str = Form(""), file: UploadFile = File(None)):
+    print("\n🔑 Processing with OpenRouter Free API...")
     try:
-        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        
-        # 🔴 এবার আমরা প্রো (Pro) মডেলে যাব না। শুধু ফ্রি ফ্ল্যাশ (Flash) মডেল খুঁজব।
-        target_model = None
-        for m in available_models:
-            if 'flash' in m: # যেকোনো flash মডেল (যেমন 1.5-flash বা 3.0-flash)
-                target_model = m
-                break
-                
-        if not target_model:
-            target_model = available_models[0] # ফ্ল্যাশ না পেলে বাধ্য হয়ে অন্যটা নেবে
-            
-        print(f"🎯 Using completely FREE Model: {target_model}")
-        
-        model = genai.GenerativeModel(target_model)
+        # OpenRouter-এর হেডার
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json"
+        }
         
         system_prompt = "You are a highly empathetic AI mental health counselor for 'HealthCatch AI'. Keep answers brief and helpful. If the user uploads a prescription or medical image, gently remind them that you are an AI and they should consult a real doctor, but explain the contents in simple terms."
         
-        contents = [system_prompt]
-        if message:
-            contents.append(message)
-        else:
-            contents.append("Please analyze this attached file.")
-            
+        # ইউজার মেসেজ তৈরি করা
+        text_content = f"{system_prompt}\n\nUser: {message if message else 'Please analyze this attached file.'}"
+        
+        content = [
+            {"type": "text", "text": text_content}
+        ]
+        
+        # যদি ছবি আপলোড হয়, সেটাকে Base64 এ কনভার্ট করা
         if file and file.filename:
             image_data = await file.read()
-            image = Image.open(io.BytesIO(image_data))
-            contents.append(image)
+            base64_image = base64.b64encode(image_data).decode('utf-8')
+            mime_type = file.content_type or "image/jpeg"
             
-        response = model.generate_content(contents)
-        return {"reply": response.text}
+            content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{mime_type};base64,{base64_image}"
+                }
+            })
+        
+        # OpenRouter-এর ফ্রি Vision মডেল রিকোয়েস্ট
+        data = {
+            "model": "meta-llama/llama-3.2-11b-vision-instruct:free", # ১০০% ফ্রি মডেল
+            "messages": [
+                {
+                    "role": "user",
+                    "content": content
+                }
+            ]
+        }
+        
+        # API-তে কল করা
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
+        response_json = response.json()
+        
+        if "choices" in response_json:
+            reply = response_json["choices"][0]["message"]["content"]
+            print("✅ Success with OpenRouter!")
+            return {"reply": reply}
+        else:
+            print("❌ OpenRouter Error:", response_json)
+            return {"reply": "Sorry, the AI service is temporarily busy. Please try again."}
             
     except Exception as e:
         print("❌ Error:", str(e))
+        return {"reply": f"Technical Issue: {str(e)}"}
