@@ -540,12 +540,27 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
       {/* ── SIDEBAR ── */}
       <motion.div initial={{ x: -280 }} animate={{ x: 0 }} transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }} style={{ width: '256px', display: 'flex', flexDirection: 'column', background: panelBg, backdropFilter: 'blur(50px)', borderRight: `1px solid ${panelBorder}` }}>
         <div style={{ padding: '28px 22px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
             <div style={{ width: 34, height: 34, borderRadius: '10px', background: 'linear-gradient(135deg, #3b82f6, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <BrainCircuit size={17} color="#fff" />
             </div>
             <span style={{ fontSize: '17px', fontWeight: 800, color: '#60a5fa', fontFamily: "'Space Grotesk', sans-serif" }}>HealthCatch</span>
           </div>
+
+          {/* LinkedIn/Facebook Style Profile Summary in Sidebar */}
+          <div style={{ background: isDarkMode ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.5)', borderRadius: '16px', padding: '16px', marginBottom: '24px', border: `1px solid ${panelBorder}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: '3px solid #3b82f6', marginBottom: '10px' }}>
+               <img src={userPhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: textPrimary }}>{userName}</h3>
+            <p style={{ fontSize: '11px', color: textSecondary, marginTop: '2px', padding: '0 4px' }}>Aspiring Wellness Journey</p>
+            <div style={{ width: '100%', height: '1px', background: panelBorder, margin: '12px 0' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '12px' }}>
+              <span style={{ color: textSecondary }}>Connections</span>
+              <span style={{ color: '#3b82f6', fontWeight: 600 }}>42</span>
+            </div>
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <SidebarBtn icon={<LayoutDashboard size={17} />} label="Dashboard" tab="dashboard" active={activeTab} set={setActiveTab} isDark={isDarkMode} />
             <SidebarBtn icon={<Stethoscope size={17} />} label="Consult Doctors" tab="doctors" active={activeTab} set={setActiveTab} isDark={isDarkMode} />
@@ -582,13 +597,18 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
             </button>
           </div>
 
-          {/* Right: Icons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ width: 36, height: 36, borderRadius: '10px', background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: isDarkMode ? '#fbbf24' : '#475569', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button title="Theme Toggle" onClick={() => setIsDarkMode(!isDarkMode)} style={{ width: 36, height: 36, borderRadius: '10px', background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: isDarkMode ? '#fbbf24' : '#475569', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
             </button>
+
+            {/* NEW: Messaging Icon */}
+            <button title="Messaging" onClick={() => setActiveTab('messaging')} style={{ width: 36, height: 36, borderRadius: '10px', background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: textSecondary, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
+              <MessageCircle size={16} />
+            </button>
+
             <div style={{ position: 'relative' }}>
-              <button onClick={() => setShowNotifications(!showNotifications)} style={{ width: 36, height: 36, borderRadius: '10px', background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: textSecondary, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              <button title="Notifications" onClick={() => setShowNotifications(!showNotifications)} style={{ width: 36, height: 36, borderRadius: '10px', background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: textSecondary, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                 <Bell size={16} /><span style={{ position: 'absolute', top: 7, right: 7, width: 7, height: 7, background: '#ef4444', borderRadius: '50%' }} />
               </button>
               <AnimatePresence>
@@ -862,6 +882,16 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
                       <button style={{ padding: '14px 32px', borderRadius: '12px', background: '#3b82f6', border: 'none', color: '#fff', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 15px rgba(59,130,246,0.3)' }}>Save Changes</button>
                     </div>
                   </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Other Placeholders */}
+            {['mood', 'settings', 'messaging'].includes(activeTab) && (
+              <motion.div key={activeTab} variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', position: 'absolute', inset: 0 }}>
+                <div style={{ padding: '56px 72px', borderRadius: '28px', background: panelBg, backdropFilter: 'blur(50px)', border: `1px solid ${panelBorder}`, textAlign: 'center' }}>
+                  <h2 style={{ fontSize: '32px', fontWeight: 900, marginBottom: '12px', textTransform: 'capitalize', fontFamily: "'Space Grotesk', sans-serif" }}><span className="text-gradient-hero">{activeTab}</span></h2>
+                  <p style={{ color: textSecondary, fontSize: '14px' }}>This section is coming soon.</p>
                 </div>
               </motion.div>
             )}
