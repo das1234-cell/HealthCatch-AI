@@ -12,7 +12,8 @@ import {
   LayoutDashboard, MessageSquare, HeartPulse, Settings, Send, User, Bot, Loader2,
   LogOut, Search, Sun, Moon, Bell, Paperclip, Mail, Lock,
   Calendar, Users, CheckCircle, BrainCircuit, ChevronDown, Sparkles,
-  Stethoscope, Video, ThumbsUp, MessageCircle, Share2, UserPlus, Image as ImageIcon, Camera, Home
+  Stethoscope, Video, ThumbsUp, MessageCircle, Share2, UserPlus, Image as ImageIcon, Camera, Home,
+  HelpCircle, ShoppingBag, Target, FolderHeart 
 } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -485,6 +486,7 @@ const MOCK_DOCTORS = [
 function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMode }) {
   const [activeTab, setActiveTab] = useState('home'); 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [messages, setMessages] = useState([{ sender: 'ai', text: "Hello! I'm your HealthCatch AI Counselor. How are you feeling today?" }]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -494,9 +496,24 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
   const profilePicRef = useRef(null);
+  const dropdownRef = useRef(null); // <--- Added Ref for Click Outside Logic
 
   useEffect(() => { scrollProgressRef.current = 0; }, []);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isLoading, activeTab]);
+
+  // Global Click Listener to close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowNotifications(false);
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleSendMessage = async () => {
     if (!input.trim() && !selectedFile) return;
@@ -547,7 +564,6 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
             <span style={{ fontSize: '17px', fontWeight: 800, color: '#60a5fa', fontFamily: "'Space Grotesk', sans-serif" }}>HealthCatch</span>
           </div>
 
-          {/* LinkedIn/Facebook Style Profile Summary in Sidebar */}
           <div style={{ background: isDarkMode ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.5)', borderRadius: '16px', padding: '16px', marginBottom: '24px', border: `1px solid ${panelBorder}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: '3px solid #3b82f6', marginBottom: '10px' }}>
                <img src={userPhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -567,17 +583,12 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
             <SidebarBtn icon={<MessageSquare size={17} />} label="AI Chatbot" tab="chat" active={activeTab} set={setActiveTab} isDark={isDarkMode} />
           </div>
         </div>
-        <div style={{ marginTop: 'auto', padding: '22px', borderTop: `1px solid ${panelBorder}` }}>
-          <button onClick={() => signOut(auth).then(onLogout)} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 18px', borderRadius: '12px', background: 'transparent', border: 'none', color: textSecondary, fontWeight: 600, cursor: 'pointer' }}>
-            <LogOut size={17} /> Logout
-          </button>
-        </div>
       </motion.div>
 
       {/* ── MAIN ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-        {/* Topbar */}
-        <motion.div initial={{ y: -80 }} animate={{ y: 0 }} transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '68px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', borderBottom: `1px solid ${panelBorder}`, background: panelBg, backdropFilter: 'blur(50px)' }}>
+        {/* Topbar with HIGHER Z-INDEX */}
+        <motion.div initial={{ y: -80 }} animate={{ y: 0 }} transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }} style={{ height: '68px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', borderBottom: `1px solid ${panelBorder}`, background: panelBg, backdropFilter: 'blur(50px)', position: 'relative', zIndex: 50 }}>
           
           {/* Left: Search Bar */}
           <div style={{ position: 'relative', width: '280px' }}>
@@ -585,35 +596,42 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
             <input type="text" placeholder="Search..." style={{ width: '100%', height: '38px', borderRadius: '11px', background: inputBg, border: `1px solid ${inputBorder}`, color: textPrimary, padding: '0 14px 0 40px', outline: 'none' }} />
           </div>
 
-          {/* Center: Top Navigation Icons (Facebook/LinkedIn Style) */}
+          {/* Center: Top Navigation Icons */}
           <div style={{ display: 'flex', justifyContent: 'center', flex: 1, gap: '15px' }}>
-            {/* Home Icon */}
             <button title="Home" onClick={() => setActiveTab('home')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: activeTab === 'home' ? '#3b82f6' : textSecondary, borderBottom: activeTab === 'home' ? '3px solid #3b82f6' : '3px solid transparent', padding: '10px 30px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
               <Home size={26} />
             </button>
-            {/* Health Circle Icon */}
             <button title="Health Circle" onClick={() => setActiveTab('network')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: activeTab === 'network' ? '#3b82f6' : textSecondary, borderBottom: activeTab === 'network' ? '3px solid #3b82f6' : '3px solid transparent', padding: '10px 30px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
               <Users size={26} />
             </button>
+            <button title="Health Market" onClick={() => setActiveTab('market')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: activeTab === 'market' ? '#3b82f6' : textSecondary, borderBottom: activeTab === 'market' ? '3px solid #3b82f6' : '3px solid transparent', padding: '10px 30px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
+              <ShoppingBag size={26} />
+            </button>
+            <button title="Challenges" onClick={() => setActiveTab('challenges')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: activeTab === 'challenges' ? '#3b82f6' : textSecondary, borderBottom: activeTab === 'challenges' ? '3px solid #3b82f6' : '3px solid transparent', padding: '10px 30px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
+              <Target size={26} />
+            </button>
+            <button title="Medical Vault" onClick={() => setActiveTab('vault')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: activeTab === 'vault' ? '#3b82f6' : textSecondary, borderBottom: activeTab === 'vault' ? '3px solid #3b82f6' : '3px solid transparent', padding: '10px 30px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
+              <FolderHeart size={26} />
+            </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button title="Theme Toggle" onClick={() => setIsDarkMode(!isDarkMode)} style={{ width: 36, height: 36, borderRadius: '10px', background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: isDarkMode ? '#fbbf24' : '#475569', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-
-            {/* NEW: Messaging Icon */}
+          {/* Right: Icons & Profile Menu with REF for Click Outside */}
+          <div ref={dropdownRef} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button title="Messaging" onClick={() => setActiveTab('messaging')} style={{ width: 36, height: 36, borderRadius: '10px', background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: textSecondary, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
               <MessageCircle size={16} />
             </button>
 
             <div style={{ position: 'relative' }}>
-              <button title="Notifications" onClick={() => setShowNotifications(!showNotifications)} style={{ width: 36, height: 36, borderRadius: '10px', background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: textSecondary, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              <button 
+                title="Notifications" 
+                onClick={() => { setShowNotifications(!showNotifications); setShowProfileMenu(false); }} 
+                style={{ width: 36, height: 36, borderRadius: '10px', background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: textSecondary, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
+              >
                 <Bell size={16} /><span style={{ position: 'absolute', top: 7, right: 7, width: 7, height: 7, background: '#ef4444', borderRadius: '50%' }} />
               </button>
               <AnimatePresence>
                 {showNotifications && (
-                  <motion.div initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} style={{ position: 'absolute', right: 0, top: '48px', width: '280px', borderRadius: '16px', background: isDarkMode ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.95)', border: `1px solid ${panelBorder}`, backdropFilter: 'blur(40px)', zIndex: 50, overflow: 'hidden' }}>
+                  <motion.div initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} style={{ position: 'absolute', right: 0, top: '48px', width: '280px', borderRadius: '16px', background: isDarkMode ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.95)', border: `1px solid ${panelBorder}`, backdropFilter: 'blur(40px)', zIndex: 100, overflow: 'hidden' }}>
                     <div style={{ padding: '14px 18px', borderBottom: `1px solid ${panelBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700, fontSize: '13px' }}>
                       <span>Notifications</span><span style={{ fontSize: '10px', background: '#3b82f6', color: '#fff', padding: '2px 8px', borderRadius: '20px' }}>New</span>
                     </div>
@@ -625,8 +643,50 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
                 )}
               </AnimatePresence>
             </div>
-            <div onClick={() => setActiveTab('profile')} style={{ width: 36, height: 36, borderRadius: '10px', overflow: 'hidden', border: '2px solid rgba(59,130,246,0.4)', cursor: 'pointer' }}>
-              <img src={userPhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+
+            <div style={{ position: 'relative' }}>
+              <div 
+                onClick={() => { setShowProfileMenu(!showProfileMenu); setShowNotifications(false); }} 
+                style={{ width: 36, height: 36, borderRadius: '10px', overflow: 'hidden', border: '2px solid rgba(59,130,246,0.4)', cursor: 'pointer' }}
+              >
+                <img src={userPhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <motion.div initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} style={{ position: 'absolute', right: 0, top: '48px', width: '280px', borderRadius: '16px', background: isDarkMode ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.95)', border: `1px solid ${panelBorder}`, backdropFilter: 'blur(40px)', zIndex: 100, overflow: 'hidden', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.6)' }}>
+                    <div style={{ padding: '16px', borderBottom: `1px solid ${panelBorder}` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                        <img src={userPhoto} alt="Profile" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                        <div>
+                          <p style={{ fontWeight: 700, fontSize: '15px' }}>{userName}</p>
+                          <p style={{ fontSize: '12px', color: textSecondary }}>Aspiring Wellness</p>
+                        </div>
+                      </div>
+                      <button onClick={() => { setActiveTab('profile'); setShowProfileMenu(false); }} style={{ width: '100%', padding: '6px 0', borderRadius: '20px', border: `1px solid #3b82f6`, background: 'transparent', color: '#3b82f6', fontWeight: 600, fontSize: '13px', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={(e)=>e.currentTarget.style.background='rgba(59,130,246,0.1)'} onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}>
+                        View Profile
+                      </button>
+                    </div>
+                    <div style={{ padding: '8px' }}>
+                      <button style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', background: 'transparent', border: 'none', color: textPrimary, cursor: 'pointer', borderRadius: '8px', fontSize: '14px', fontWeight: 500 }} onMouseEnter={(e)=>e.currentTarget.style.background=isDarkMode?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)'} onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}>
+                        <Settings size={18} color={textSecondary} /> Settings & Privacy
+                      </button>
+                      <button style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', background: 'transparent', border: 'none', color: textPrimary, cursor: 'pointer', borderRadius: '8px', fontSize: '14px', fontWeight: 500 }} onMouseEnter={(e)=>e.currentTarget.style.background=isDarkMode?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)'} onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}>
+                        <HelpCircle size={18} color={textSecondary} /> Help & Support
+                      </button>
+                      <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'transparent', border: 'none', color: textPrimary, cursor: 'pointer', borderRadius: '8px', fontSize: '14px', fontWeight: 500 }} onMouseEnter={(e)=>e.currentTarget.style.background=isDarkMode?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)'} onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                           {isDarkMode ? <Moon size={18} color={textSecondary} /> : <Sun size={18} color={textSecondary} />} 
+                           Display & Accessibility
+                        </div>
+                      </button>
+                      <button onClick={() => signOut(auth).then(onLogout)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', background: 'transparent', border: 'none', color: textPrimary, cursor: 'pointer', borderRadius: '8px', fontSize: '14px', fontWeight: 500 }} onMouseEnter={(e)=>e.currentTarget.style.background=isDarkMode?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)'} onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}>
+                        <LogOut size={18} color={textSecondary} /> Log Out
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </motion.div>
@@ -670,7 +730,6 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
                 <div style={{ maxWidth: '680px', margin: '0 auto' }}>
                   <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '24px', fontFamily: "'Space Grotesk', sans-serif" }}>Home Feed</h2>
                   
-                  {/* Create Post */}
                   <div style={{ background: panelBg, padding: '24px', borderRadius: '24px', border: `1px solid ${panelBorder}`, marginBottom: '30px', backdropFilter: 'blur(40px)' }}>
                     <div style={{ display: 'flex', gap: '15px' }}>
                       <img src={userPhoto} alt="User" style={{ width: 44, height: 44, borderRadius: '50%', border: '2px solid #3b82f6' }} />
@@ -682,7 +741,6 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
                     </div>
                   </div>
 
-                  {/* Feed Posts */}
                   {MOCK_POSTS.map(post => (
                     <div key={post.id} style={{ background: panelBg, padding: '24px', borderRadius: '24px', border: `1px solid ${panelBorder}`, marginBottom: '24px', backdropFilter: 'blur(40px)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -713,7 +771,6 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
               <motion.div key="network" variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ height: '100%', overflowY: 'auto', position: 'absolute', inset: 0, padding: '30px' }}>
                 <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
                   
-                  {/* Left Sidebar for Health Circle */}
                   <div style={{ width: '280px', flexShrink: 0, background: panelBg, borderRadius: '24px', padding: '24px', border: `1px solid ${panelBorder}`, height: 'fit-content', backdropFilter: 'blur(40px)' }}>
                     <h3 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '20px', fontFamily: "'Space Grotesk', sans-serif" }}>Health Circle</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -725,7 +782,6 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
                     </div>
                   </div>
 
-                  {/* Right Content: Cards Grid */}
                   <div style={{ flex: 1 }}>
                     <div style={{ background: panelBg, borderRadius: '24px', padding: '30px', border: `1px solid ${panelBorder}`, backdropFilter: 'blur(40px)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -887,7 +943,7 @@ function AuthenticatedApp({ onLogout, scrollProgressRef, isDarkMode, setIsDarkMo
             )}
 
             {/* Other Placeholders */}
-            {['mood', 'settings', 'messaging'].includes(activeTab) && (
+            {['market', 'challenges', 'vault', 'messaging'].includes(activeTab) && (
               <motion.div key={activeTab} variants={pageVariants} initial="initial" animate="animate" exit="exit" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', position: 'absolute', inset: 0 }}>
                 <div style={{ padding: '56px 72px', borderRadius: '28px', background: panelBg, backdropFilter: 'blur(50px)', border: `1px solid ${panelBorder}`, textAlign: 'center' }}>
                   <h2 style={{ fontSize: '32px', fontWeight: 900, marginBottom: '12px', textTransform: 'capitalize', fontFamily: "'Space Grotesk', sans-serif" }}><span className="text-gradient-hero">{activeTab}</span></h2>
